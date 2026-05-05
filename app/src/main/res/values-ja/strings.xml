@@ -51,12 +51,13 @@
     <string name="voice_qso_stop">停止して解析</string>
     <string name="voice_qso_unknown_error">不明なエラー</string>
     <string name="llm_first_setup_title">音声QSOログを有効化</string>
-    <string name="llm_first_setup_message">音声QSOにはOpenAI互換のクラウドLLM（APIキーとエンドポイント）が必要です。設定しない場合は手動入力のみ使用できます。</string>
+    <string name="llm_first_setup_message">音声QSOにはOpenAI互換のクラウドLLM（エンドポイントとモデル）が必要です。APIキーは後からプロフィール→設定で入力できます。未設定でも手動入力でログは記録できます。</string>
     <string name="llm_first_setup_endpoint">APIエンドポイント</string>
     <string name="llm_first_setup_api_key">APIキー</string>
+    <string name="llm_first_setup_api_key_hint">任意。後からプロフィール→設定で入力できます。</string>
     <string name="llm_first_setup_model">モデル名</string>
-    <string name="llm_first_setup_save">保存して音声を有効</string>
-    <string name="llm_first_setup_manual_only">手動入力のみ</string>
+    <string name="llm_first_setup_save">保存</string>
+    <string name="llm_first_setup_manual_only">スキップ（後で設定）</string>
 
     <!-- Tools Screen -->
     <string name="tools_title">ツールボックス</string>
@@ -117,6 +118,11 @@
     <!-- Settings -->
     <string name="settings_title">設定</string>
     <string name="settings_llm_api">LLM API設定</string>
+    <string name="settings_llm_model">チャットモデル</string>
+    <string name="settings_llm_model_custom">カスタム</string>
+    <string name="settings_llm_custom_model_hint">カスタムモデルID</string>
+    <string name="settings_llm_save">LLM設定を保存</string>
+    <string name="settings_llm_endpoint_hint">プリセットのチャットモデルを選ぶと、そのベンダーでよく使われる互換Base URLが自動入力されます。Azure・プロキシ・集約ゲートウェイ・既定外リージョンでは、コンソールのドキュメントに従い手動で書き換えてください。</string>
     <string name="settings_api_key">APIキー</string>
     <string name="settings_backup">データバックアップ</string>
     <string name="settings_export_json">JSONエクスポート</string>
@@ -208,7 +214,7 @@
     <string name="quick_action_settings">設定</string>
     <string name="quick_action_settings_subtitle">データバックアップとエクスポート</string>
     <string name="quick_action_about">アプリについて</string>
-    <string name="quick_action_about_subtitle">HamTools v1.0.0</string>
+    <string name="quick_action_about_subtitle">HamTools v1.1.0</string>
     
     <!-- Onboarding -->
     <string name="onboarding_welcome">HamToolsへようこそ</string>

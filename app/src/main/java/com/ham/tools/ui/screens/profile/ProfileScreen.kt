@@ -8,6 +8,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -89,11 +91,14 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.ham.tools.R
 import com.ham.tools.data.model.FrequencyStat
+import com.ham.tools.data.model.AppSettings
 import com.ham.tools.data.model.LicenseClass
 import com.ham.tools.data.model.QsoStatistics
 import com.ham.tools.data.model.UserProfile
 import com.ham.tools.util.AppLanguage
 import com.ham.tools.util.DataExporter
+import com.ham.tools.ui.llm.LlmModelSelectorField
+import com.ham.tools.ui.llm.LlmPresetModels
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -224,12 +229,23 @@ fun ProfileScreen(
     // 设置面板
     if (uiState.showSettingsSheet) {
         SettingsSheet(
+            appSettings = appSettings,
             lastBackupTime = appSettings.lastBackupTime,
             currentLanguage = AppLanguage.fromCode(appSettings.languageCode),
             onDismiss = { viewModel.toggleSettingsSheet(false) },
             onExportJson = { uri -> viewModel.exportToJson(uri) },
             onExportCsv = { uri -> viewModel.exportToCsv(uri) },
-            onLanguageChange = { language -> viewModel.updateLanguage(language, activity) }
+            onLanguageChange = { language -> viewModel.updateLanguage(language, activity) },
+            onSaveLlmSettings = { ep, key, m ->
+                val s = appSettings
+                viewModel.updateSettings(
+                    s.copy(
+                        llmEndpoint = ep.trim().ifBlank { s.llmEndpoint },
+                        llmApiKey = key.trim(),
+                        llmModel = m.trim().ifBlank { s.llmModel }
+                    )
+                )
+            }
         )
     }
 }
@@ -1076,30 +1092,42 @@ private fun EditProfileSheet(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SettingsSheet(
+    appSettings: AppSettings,
     lastBackupTime: Long?,
     currentLanguage: AppLanguage,
     onDismiss: () -> Unit,
     onExportJson: (Uri) -> Unit,
     onExportCsv: (Uri) -> Unit,
-    onLanguageChange: (AppLanguage) -> Unit
+    onLanguageChange: (AppLanguage) -> Unit,
+    onSaveLlmSettings: (endpoint: String, apiKey: String, model: String) -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var languageExpanded by remember { mutableStateOf(false) }
-    
+    val scrollState = rememberScrollState()
+
+    var llmEndpoint by remember { mutableStateOf(appSettings.llmEndpoint) }
+    var llmApiKey by remember { mutableStateOf(appSettings.llmApiKey) }
+    var llmModel by remember { mutableStateOf(appSettings.llmModel) }
+    LaunchedEffect(appSettings.llmEndpoint, appSettings.llmApiKey, appSettings.llmModel) {
+        llmEndpoint = appSettings.llmEndpoint
+        llmApiKey = appSettings.llmApiKey
+        llmModel = appSettings.llmModel
+    }
+
     // JSON 导出器
     val jsonExportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json")
     ) { uri: Uri? ->
         uri?.let { onExportJson(it) }
     }
-    
+
     // CSV 导出器
     val csvExportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("text/csv")
     ) { uri: Uri? ->
         uri?.let { onExportCsv(it) }
     }
-    
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -1108,6 +1136,7 @@ private fun SettingsSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(scrollState)
                 .padding(horizontal = 24.dp)
                 .padding(bottom = 32.dp)
         ) {
@@ -1116,9 +1145,80 @@ private fun SettingsSheet(
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
-            
+
             Spacer(modifier = Modifier.height(24.dp))
-            
+
+            Text(
+                text = stringResource(R.string.settings_llm_api),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            LlmModelSelectorField(
+                modelId = llmModel,
+                onModelIdChange = { new ->
+                    llmModel = new
+                    LlmPresetModels.suggestedEndpointForPresetModel(new)?.let { llmEndpoint = it }
+                    onSaveLlmSettings(llmEndpoint, llmApiKey, new)
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Text(
+                text = stringResource(R.string.settings_llm_endpoint_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedTextField(
+                value = llmEndpoint,
+                onValueChange = { llmEndpoint = it },
+                label = { Text(stringResource(R.string.llm_first_setup_endpoint)) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = RoundedCornerShape(16.dp)
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = llmApiKey,
+                onValueChange = { llmApiKey = it },
+                label = { Text(stringResource(R.string.settings_api_key)) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = RoundedCornerShape(16.dp)
+            )
+
+            Text(
+                text = stringResource(R.string.llm_first_setup_api_key_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = { onSaveLlmSettings(llmEndpoint, llmApiKey, llmModel) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Text(stringResource(R.string.settings_llm_save))
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            HorizontalDivider()
+
+            Spacer(modifier = Modifier.height(24.dp))
+
             // 语言设置
             Text(
                 text = stringResource(R.string.settings_language),
@@ -1126,9 +1226,9 @@ private fun SettingsSheet(
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary
             )
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             // 语言选择下拉框
             ExposedDropdownMenuBox(
                 expanded = languageExpanded,
@@ -1149,7 +1249,7 @@ private fun SettingsSheet(
                         .menuAnchor(MenuAnchorType.PrimaryNotEditable),
                     shape = RoundedCornerShape(16.dp)
                 )
-                
+
                 ExposedDropdownMenu(
                     expanded = languageExpanded,
                     onDismissRequest = { languageExpanded = false }
@@ -1184,9 +1284,9 @@ private fun SettingsSheet(
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(24.dp))
-            
+
             // 数据备份
             Text(
                 text = stringResource(R.string.settings_backup),
@@ -1194,9 +1294,9 @@ private fun SettingsSheet(
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary
             )
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             if (lastBackupTime != null) {
                 Text(
                     text = "${stringResource(R.string.settings_last_backup)}: ${SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(lastBackupTime))}",
@@ -1204,9 +1304,9 @@ private fun SettingsSheet(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -1218,7 +1318,7 @@ private fun SettingsSheet(
                 ) {
                     Text(stringResource(R.string.settings_export_json))
                 }
-                
+
                 FilledTonalButton(
                     onClick = { csvExportLauncher.launch(DataExporter.generateFileName("csv")) },
                     modifier = Modifier.weight(1f),
@@ -1227,9 +1327,9 @@ private fun SettingsSheet(
                     Text(stringResource(R.string.settings_export_csv))
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             Text(
                 text = stringResource(R.string.settings_export_hint),
                 style = MaterialTheme.typography.bodySmall,

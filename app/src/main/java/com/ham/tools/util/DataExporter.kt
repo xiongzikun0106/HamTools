@@ -55,7 +55,7 @@ object DataExporter {
      */
     @Serializable
     data class ExportData(
-        val appVersion: String = "1.0.0",
+        val appVersion: String = "1.1.0",
         val exportTime: String,
         val totalRecords: Int,
         val qsoLogs: List<ExportableQso>

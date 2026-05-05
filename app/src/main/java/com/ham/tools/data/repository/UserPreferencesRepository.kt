@@ -86,7 +86,7 @@ class UserPreferencesRepository @Inject constructor(
         AppSettings(
             llmApiKey = prefs[SettingsKeys.LLM_API_KEY] ?: "",
             llmEndpoint = prefs[SettingsKeys.LLM_ENDPOINT] ?: "https://api.openai.com/v1",
-            llmModel = prefs[SettingsKeys.LLM_MODEL] ?: "gpt-4o-mini",
+            llmModel = prefs[SettingsKeys.LLM_MODEL] ?: "gpt-5.4-mini",
             llmFirstSetupCompleted = prefs[SettingsKeys.LLM_FIRST_SETUP_COMPLETED] ?: false,
             darkMode = when (prefs[SettingsKeys.DARK_MODE]) {
                 "true" -> true

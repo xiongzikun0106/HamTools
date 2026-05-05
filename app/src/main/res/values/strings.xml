@@ -51,12 +51,13 @@
     <string name="voice_qso_stop">结束并解析</string>
     <string name="voice_qso_unknown_error">未知错误</string>
     <string name="llm_first_setup_title">启用语音通联日志</string>
-    <string name="llm_first_setup_message">语音通联需配置兼容 OpenAI 的云端 LLM（API Key 与 Endpoint）。若不配置，仍可继续使用手动录入通联。</string>
+    <string name="llm_first_setup_message">语音通联需兼容 OpenAI 的云端 LLM（Endpoint 与模型）。API Key 可留空，稍后在「我的 → 设置」中填写；未完整配置时仍可手动录入通联。</string>
     <string name="llm_first_setup_endpoint">API 端点</string>
     <string name="llm_first_setup_api_key">API Key</string>
+    <string name="llm_first_setup_api_key_hint">可选。若暂不填写，可在「我的 → 设置」中补充。</string>
     <string name="llm_first_setup_model">模型名称</string>
-    <string name="llm_first_setup_save">保存并启用语音</string>
-    <string name="llm_first_setup_manual_only">仅使用手动录入</string>
+    <string name="llm_first_setup_save">保存配置</string>
+    <string name="llm_first_setup_manual_only">跳过，稍后设置</string>
     
     <!-- Tools Screen -->
     <string name="tools_title">工具箱</string>
@@ -117,6 +118,11 @@
     <!-- Settings -->
     <string name="settings_title">设置</string>
     <string name="settings_llm_api">LLM API 配置</string>
+    <string name="settings_llm_model">对话模型</string>
+    <string name="settings_llm_model_custom">自定义</string>
+    <string name="settings_llm_custom_model_hint">自定义模型 ID</string>
+    <string name="settings_llm_save">保存 LLM 配置</string>
+    <string name="settings_llm_endpoint_hint">选择预设对话模型时会自动填写该厂商常用的兼容 Base URL。若使用 Azure、企业代理、聚合接口或非控制台默认地域，请改为你控制台文档中的地址。</string>
     <string name="settings_api_key">API Key</string>
     <string name="settings_backup">数据备份</string>
     <string name="settings_export_json">导出 JSON</string>
@@ -208,7 +214,7 @@
     <string name="quick_action_settings">设置</string>
     <string name="quick_action_settings_subtitle">数据备份与导出</string>
     <string name="quick_action_about">关于</string>
-    <string name="quick_action_about_subtitle">HamTools v1.0.0</string>
+    <string name="quick_action_about_subtitle">HamTools v1.1.0</string>
     
     <!-- Onboarding -->
     <string name="onboarding_welcome">欢迎使用 HamTools</string>

@@ -19,9 +19,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ham.tools.R
+import com.ham.tools.ui.llm.LlmModelSelectorField
+import com.ham.tools.ui.llm.LlmPresetModels
 
 /**
- * 首次进入主界面后提示配置 LLM；若跳过则仅可使用手动通联录入。
+ * 首次进入主界面后提示配置 LLM；API Key 可留空，稍后在「我的 → 设置」中补充；亦可跳过稍后设置。
  */
 @Composable
 fun LlmFirstSetupDialog(
@@ -51,6 +53,21 @@ fun LlmFirstSetupDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(16.dp))
+                LlmModelSelectorField(
+                    modelId = model,
+                    onModelIdChange = { new ->
+                        model = new
+                        LlmPresetModels.suggestedEndpointForPresetModel(new)?.let { endpoint = it }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text(
+                    text = stringResource(R.string.settings_llm_endpoint_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+                Spacer(modifier = Modifier.height(12.dp))
                 OutlinedTextField(
                     value = endpoint,
                     onValueChange = { endpoint = it },
@@ -66,20 +83,17 @@ fun LlmFirstSetupDialog(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = model,
-                    onValueChange = { model = it },
-                    label = { Text(stringResource(R.string.llm_first_setup_model)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                Text(
+                    text = stringResource(R.string.llm_first_setup_api_key_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp)
                 )
             }
         },
         confirmButton = {
             TextButton(
                 onClick = { onSave(endpoint, apiKey, model) },
-                enabled = apiKey.isNotBlank(),
                 modifier = Modifier.padding(end = 8.dp)
             ) {
                 Text(stringResource(R.string.llm_first_setup_save))

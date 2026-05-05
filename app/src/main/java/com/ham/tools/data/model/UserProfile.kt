@@ -84,7 +84,7 @@ data class AppSettings(
     val llmEndpoint: String = "https://api.openai.com/v1",
 
     /** 对话模型名（OpenAI 兼容） */
-    val llmModel: String = "gpt-4o-mini",
+    val llmModel: String = "gpt-5.4-mini",
 
     /** 是否已完成首次 LLM 配置引导（不要求必有 Key；仅手动录入也会标记） */
     val llmFirstSetupCompleted: Boolean = false,
