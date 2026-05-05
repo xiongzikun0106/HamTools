@@ -1,5 +1,8 @@
 package com.ham.tools.ui.screens.logbook
 
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -34,6 +37,7 @@ import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
@@ -56,6 +60,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -67,6 +72,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -82,6 +88,8 @@ import com.ham.tools.data.model.Mode
 import com.ham.tools.data.model.PropagationMode
 import com.ham.tools.data.model.QslStatus
 import com.ham.tools.data.model.QsoLog
+import androidx.core.content.ContextCompat
+import android.content.pm.PackageManager
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -114,10 +122,33 @@ fun LogbookScreen(
     viewModel: LogbookViewModel = hiltViewModel(),
     onGenerateQsl: (QsoLog) -> Unit = {}
 ) {
+    val context = LocalContext.current
     val logs by viewModel.logs.collectAsStateWithLifecycle()
     val showBottomSheet by viewModel.showBottomSheet.collectAsStateWithLifecycle()
     val formState by viewModel.formState.collectAsStateWithLifecycle()
+    val appSettings by viewModel.appSettings.collectAsStateWithLifecycle()
+    val voiceUi by viewModel.voiceUi.collectAsStateWithLifecycle()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    val micPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) viewModel.startVoicePipeline()
+    }
+
+    fun hasMicPermission(): Boolean =
+        ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
+            PackageManager.PERMISSION_GRANTED
+
+    fun onFabClick() {
+        if (appSettings.llmApiKey.isBlank()) {
+            viewModel.showAddSheet()
+        } else if (hasMicPermission()) {
+            viewModel.startVoicePipeline()
+        } else {
+            micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -136,7 +167,7 @@ fun LogbookScreen(
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = { viewModel.showAddSheet() },
+                onClick = { onFabClick() },
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 icon = { Icon(imageVector = Icons.Filled.Add, contentDescription = null) },
@@ -180,6 +211,14 @@ fun LogbookScreen(
                 }
             }
         }
+    }
+
+    if (voiceUi.phase != VoiceQsoPhase.HIDDEN) {
+        VoiceQsoSessionDialog(
+            state = voiceUi,
+            onStopRecording = { viewModel.requestStopRecording() },
+            onDismiss = { viewModel.dismissVoiceUi() }
+        )
     }
 
     if (showBottomSheet) {
@@ -826,6 +865,109 @@ private fun PropagationDropdown(
             }
         }
     }
+}
+
+@Composable
+private fun VoiceQsoSessionDialog(
+    state: VoiceQsoUiState,
+    onStopRecording: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val dismissible = state.phase == VoiceQsoPhase.ERROR ||
+        state.phase == VoiceQsoPhase.TRANSCRIBING
+    AlertDialog(
+        onDismissRequest = {
+            when (state.phase) {
+                VoiceQsoPhase.RECORDING -> onStopRecording()
+                VoiceQsoPhase.ERROR, VoiceQsoPhase.TRANSCRIBING -> if (dismissible) onDismiss()
+                else -> {}
+            }
+        },
+        title = {
+            Text(
+                when (state.phase) {
+                    VoiceQsoPhase.PREPARING_MODEL -> stringResource(R.string.voice_qso_title_prepare)
+                    VoiceQsoPhase.RECORDING -> stringResource(R.string.voice_qso_title_recording)
+                    VoiceQsoPhase.LLM_PARSING -> stringResource(R.string.voice_qso_title_llm)
+                    VoiceQsoPhase.TRANSCRIBING -> stringResource(R.string.voice_qso_title_done)
+                    VoiceQsoPhase.ERROR -> stringResource(R.string.voice_qso_title_error)
+                    else -> ""
+                }
+            )
+        },
+        text = {
+            Column {
+                when (state.phase) {
+                    VoiceQsoPhase.PREPARING_MODEL -> {
+                        state.modelDownloadProgress?.let { p ->
+                            LinearProgressIndicator(progress = { p }, modifier = Modifier.fillMaxWidth())
+                        } ?: LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            stringResource(R.string.voice_qso_prepare_hint),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                    VoiceQsoPhase.RECORDING -> {
+                        Text(
+                            state.statusLine,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        if (state.asrPreview.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                state.asrPreview,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 8
+                            )
+                        }
+                    }
+                    VoiceQsoPhase.LLM_PARSING, VoiceQsoPhase.TRANSCRIBING -> {
+                        Text(state.statusLine, style = MaterialTheme.typography.bodyMedium)
+                        if (state.asrPreview.isNotBlank() && state.phase == VoiceQsoPhase.LLM_PARSING) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                state.asrPreview,
+                                style = MaterialTheme.typography.bodySmall,
+                                maxLines = 6,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    VoiceQsoPhase.ERROR -> {
+                        Text(
+                            state.errorMessage ?: stringResource(R.string.voice_qso_unknown_error),
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                    else -> {}
+                }
+            }
+        },
+        confirmButton = {
+            when (state.phase) {
+                VoiceQsoPhase.RECORDING -> {
+                    Button(onClick = onStopRecording) {
+                        Text(stringResource(R.string.voice_qso_stop))
+                    }
+                }
+                VoiceQsoPhase.ERROR -> {
+                    TextButton(onClick = onDismiss) {
+                        Text(stringResource(R.string.common_confirm))
+                    }
+                }
+                else -> { }
+            }
+        },
+        dismissButton = {
+            if (state.phase == VoiceQsoPhase.PREPARING_MODEL || state.phase == VoiceQsoPhase.LLM_PARSING) {
+                TextButton(onClick = onDismiss) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            }
+        }
+    )
 }
 
 @Composable

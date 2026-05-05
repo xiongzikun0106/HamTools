@@ -82,6 +82,12 @@ data class AppSettings(
     
     /** LLM 服务端点 */
     val llmEndpoint: String = "https://api.openai.com/v1",
+
+    /** 对话模型名（OpenAI 兼容） */
+    val llmModel: String = "gpt-4o-mini",
+
+    /** 是否已完成首次 LLM 配置引导（不要求必有 Key；仅手动录入也会标记） */
+    val llmFirstSetupCompleted: Boolean = false,
     
     /** 是否启用深色模式 (null = 跟随系统) */
     val darkMode: Boolean? = null,

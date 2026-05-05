@@ -42,7 +42,22 @@
     <string name="logbook_qsl_status">QSL Status</string>
     <string name="logbook_remarks">Remarks</string>
     <string name="logbook_remarks_placeholder">Weather, events, chat content, etc...</string>
-    
+    <string name="voice_qso_title_prepare">Preparing speech</string>
+    <string name="voice_qso_title_recording">Recording</string>
+    <string name="voice_qso_title_llm">Parsing QSO</string>
+    <string name="voice_qso_title_done">Done</string>
+    <string name="voice_qso_title_error">Voice QSO failed</string>
+    <string name="voice_qso_prepare_hint">First use downloads the Sherpa-ONNX zh/en model; keep network connected.</string>
+    <string name="voice_qso_stop">Stop and parse</string>
+    <string name="voice_qso_unknown_error">Unknown error</string>
+    <string name="llm_first_setup_title">Enable voice QSO logging</string>
+    <string name="llm_first_setup_message">Voice QSO requires an OpenAI-compatible cloud LLM (API Key and Endpoint). You can still add QSOs manually without it.</string>
+    <string name="llm_first_setup_endpoint">API endpoint</string>
+    <string name="llm_first_setup_api_key">API Key</string>
+    <string name="llm_first_setup_model">Model name</string>
+    <string name="llm_first_setup_save">Save and enable voice</string>
+    <string name="llm_first_setup_manual_only">Manual entry only</string>
+
     <!-- Tools Screen -->
     <string name="tools_title">Toolbox</string>
     <string name="tools_qsl">QSL Card Workshop</string>

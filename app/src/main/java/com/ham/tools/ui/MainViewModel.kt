@@ -2,6 +2,7 @@ package com.ham.tools.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ham.tools.data.model.AppSettings
 import com.ham.tools.data.model.UserProfile
 import com.ham.tools.data.repository.UserPreferencesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -39,6 +40,13 @@ class MainViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = UserProfile()
         )
+
+    val appSettings: StateFlow<AppSettings> = userPreferencesRepository.appSettings
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = AppSettings()
+        )
     
     init {
         // 等待配置加载完成
@@ -58,5 +66,21 @@ class MainViewModel @Inject constructor(
             isOnboardingComplete = true
         )
         userPreferencesRepository.updateProfile(updatedProfile)
+    }
+
+    suspend fun saveLlmFirstSetup(endpoint: String, apiKey: String, model: String) {
+        val s = userPreferencesRepository.appSettings.first()
+        userPreferencesRepository.updateSettings(
+            s.copy(
+                llmEndpoint = endpoint.trim().ifBlank { s.llmEndpoint },
+                llmApiKey = apiKey.trim(),
+                llmModel = model.trim().ifBlank { s.llmModel },
+                llmFirstSetupCompleted = true
+            )
+        )
+    }
+
+    suspend fun skipLlmFirstSetupManualOnly() {
+        userPreferencesRepository.markLlmFirstSetupCompleted()
     }
 }

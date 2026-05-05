@@ -51,6 +51,8 @@ class UserPreferencesRepository @Inject constructor(
     private object SettingsKeys {
         val LLM_API_KEY = stringPreferencesKey("llm_api_key")
         val LLM_ENDPOINT = stringPreferencesKey("llm_endpoint")
+        val LLM_MODEL = stringPreferencesKey("llm_model")
+        val LLM_FIRST_SETUP_COMPLETED = booleanPreferencesKey("llm_first_setup_completed")
         val DARK_MODE = stringPreferencesKey("dark_mode")  // "true", "false", or "system"
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
         val LAST_BACKUP_TIME = longPreferencesKey("last_backup_time")
@@ -84,6 +86,8 @@ class UserPreferencesRepository @Inject constructor(
         AppSettings(
             llmApiKey = prefs[SettingsKeys.LLM_API_KEY] ?: "",
             llmEndpoint = prefs[SettingsKeys.LLM_ENDPOINT] ?: "https://api.openai.com/v1",
+            llmModel = prefs[SettingsKeys.LLM_MODEL] ?: "gpt-4o-mini",
+            llmFirstSetupCompleted = prefs[SettingsKeys.LLM_FIRST_SETUP_COMPLETED] ?: false,
             darkMode = when (prefs[SettingsKeys.DARK_MODE]) {
                 "true" -> true
                 "false" -> false
@@ -120,6 +124,8 @@ class UserPreferencesRepository @Inject constructor(
         context.userPreferencesDataStore.edit { prefs ->
             prefs[SettingsKeys.LLM_API_KEY] = settings.llmApiKey
             prefs[SettingsKeys.LLM_ENDPOINT] = settings.llmEndpoint
+            prefs[SettingsKeys.LLM_MODEL] = settings.llmModel
+            prefs[SettingsKeys.LLM_FIRST_SETUP_COMPLETED] = settings.llmFirstSetupCompleted
             prefs[SettingsKeys.DARK_MODE] = when (settings.darkMode) {
                 true -> "true"
                 false -> "false"
@@ -174,6 +180,12 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun updateLlmApiKey(apiKey: String) {
         context.userPreferencesDataStore.edit { prefs ->
             prefs[SettingsKeys.LLM_API_KEY] = apiKey
+        }
+    }
+
+    suspend fun markLlmFirstSetupCompleted() {
+        context.userPreferencesDataStore.edit { prefs ->
+            prefs[SettingsKeys.LLM_FIRST_SETUP_COMPLETED] = true
         }
     }
     

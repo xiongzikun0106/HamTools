@@ -73,3 +73,6 @@
 # Keep data classes used by Room and Serialization
 -keep class com.ham.tools.data.model.** { *; }
 -keep class com.ham.tools.data.remote.** { *; }
+
+# Sherpa-ONNX JNI (com.k2fsa.sherpa.onnx)
+-keep class com.k2fsa.sherpa.onnx.** { *; }

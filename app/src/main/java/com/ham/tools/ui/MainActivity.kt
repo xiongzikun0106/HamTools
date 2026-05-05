@@ -32,6 +32,7 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.ham.tools.HamToolsApplication
+import com.ham.tools.ui.dialogs.LlmFirstSetupDialog
 import com.ham.tools.ui.navigation.HamToolsNavHost
 import com.ham.tools.ui.navigation.NavDestination
 import com.ham.tools.ui.screens.onboarding.OnboardingScreen
@@ -101,11 +102,16 @@ fun HamToolsApp(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     val userProfile by viewModel.userProfile.collectAsState()
+    val appSettings by viewModel.appSettings.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val scope = rememberCoroutineScope()
     
     // 判断是否显示引导页 - 只在配置加载完成且未完成引导时显示
     val showOnboarding = !isLoading && !userProfile.isOnboardingComplete
+
+    val showLlmFirstSetup = !isLoading &&
+        userProfile.isOnboardingComplete &&
+        !appSettings.llmFirstSetupCompleted
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -135,9 +141,32 @@ fun HamToolsApp(
             )
         }
         
+        // 首次 LLM 配置（语音通联依赖；可跳过仅手动）
+        AnimatedVisibility(
+            visible = showLlmFirstSetup,
+            enter = fadeIn(),
+            exit = fadeOut()
+        ) {
+            LlmFirstSetupDialog(
+                initialEndpoint = appSettings.llmEndpoint,
+                initialApiKey = appSettings.llmApiKey,
+                initialModel = appSettings.llmModel,
+                onSave = { ep, key, model ->
+                    scope.launch {
+                        viewModel.saveLlmFirstSetup(ep, key, model)
+                    }
+                },
+                onManualOnly = {
+                    scope.launch {
+                        viewModel.skipLlmFirstSetupManualOnly()
+                    }
+                }
+            )
+        }
+
         // 主应用界面
         AnimatedVisibility(
-            visible = !isLoading && !showOnboarding,
+            visible = !isLoading && !showOnboarding && !showLlmFirstSetup,
             enter = fadeIn(),
             exit = fadeOut()
         ) {

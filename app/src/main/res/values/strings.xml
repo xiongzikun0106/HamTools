@@ -42,6 +42,21 @@
     <string name="logbook_qsl_status">QSL状态</string>
     <string name="logbook_remarks">备注</string>
     <string name="logbook_remarks_placeholder">天气、事件、聊天内容等...</string>
+    <string name="voice_qso_title_prepare">准备语音识别</string>
+    <string name="voice_qso_title_recording">正在录音</string>
+    <string name="voice_qso_title_llm">解析通联</string>
+    <string name="voice_qso_title_done">完成</string>
+    <string name="voice_qso_title_error">语音通联失败</string>
+    <string name="voice_qso_prepare_hint">首次使用会下载 Sherpa-ONNX 中英双语模型，请保持网络连接。</string>
+    <string name="voice_qso_stop">结束并解析</string>
+    <string name="voice_qso_unknown_error">未知错误</string>
+    <string name="llm_first_setup_title">启用语音通联日志</string>
+    <string name="llm_first_setup_message">语音通联需配置兼容 OpenAI 的云端 LLM（API Key 与 Endpoint）。若不配置，仍可继续使用手动录入通联。</string>
+    <string name="llm_first_setup_endpoint">API 端点</string>
+    <string name="llm_first_setup_api_key">API Key</string>
+    <string name="llm_first_setup_model">模型名称</string>
+    <string name="llm_first_setup_save">保存并启用语音</string>
+    <string name="llm_first_setup_manual_only">仅使用手动录入</string>
     
     <!-- Tools Screen -->
     <string name="tools_title">工具箱</string>

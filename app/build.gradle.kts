@@ -49,6 +49,16 @@ android {
         compose = true
         buildConfig = true
     }
+
+    // 防止误把临时解压目录当作原生库输入，导致 mergeDebugNativeLibs 失败
+    packaging {
+        jniLibs {
+            excludes += setOf(
+                "**/temp/**",
+                "**/*.tar.bz2"
+            )
+        }
+    }
 }
 
 // Room schema export location
@@ -106,6 +116,9 @@ dependencies {
     
     // Coil for image loading
     implementation(libs.coil.compose)
+
+    // Bilingual ASR model archive (tar.bz2)
+    implementation(libs.commons.compress)
 
     // Debug
     debugImplementation(libs.androidx.ui.tooling)

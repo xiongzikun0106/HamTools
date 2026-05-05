@@ -42,7 +42,22 @@
     <string name="logbook_qsl_status">QSLステータス</string>
     <string name="logbook_remarks">備考</string>
     <string name="logbook_remarks_placeholder">天気、イベント、会話内容など...</string>
-    
+    <string name="voice_qso_title_prepare">音声認識の準備</string>
+    <string name="voice_qso_title_recording">録音中</string>
+    <string name="voice_qso_title_llm">QSO解析</string>
+    <string name="voice_qso_title_done">完了</string>
+    <string name="voice_qso_title_error">音声QSO失敗</string>
+    <string name="voice_qso_prepare_hint">初回はSherpa-ONNX中英モデルをダウンロードします。ネット接続を維持してください。</string>
+    <string name="voice_qso_stop">停止して解析</string>
+    <string name="voice_qso_unknown_error">不明なエラー</string>
+    <string name="llm_first_setup_title">音声QSOログを有効化</string>
+    <string name="llm_first_setup_message">音声QSOにはOpenAI互換のクラウドLLM（APIキーとエンドポイント）が必要です。設定しない場合は手動入力のみ使用できます。</string>
+    <string name="llm_first_setup_endpoint">APIエンドポイント</string>
+    <string name="llm_first_setup_api_key">APIキー</string>
+    <string name="llm_first_setup_model">モデル名</string>
+    <string name="llm_first_setup_save">保存して音声を有効</string>
+    <string name="llm_first_setup_manual_only">手動入力のみ</string>
+
     <!-- Tools Screen -->
     <string name="tools_title">ツールボックス</string>
     <string name="tools_qsl">QSLカード作成</string>

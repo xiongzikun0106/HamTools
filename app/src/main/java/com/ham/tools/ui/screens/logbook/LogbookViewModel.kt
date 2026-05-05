@@ -5,15 +5,28 @@ import androidx.lifecycle.viewModelScope
 import com.ham.tools.data.model.Mode
 import com.ham.tools.data.model.PropagationMode
 import com.ham.tools.data.model.QslStatus
+import com.ham.tools.data.model.AppSettings
+import com.ham.tools.data.remote.llm.LlmQsoExtractionService
+import com.ham.tools.data.remote.llm.QsoLlmPromptText
 import com.ham.tools.data.model.QsoLog
 import com.ham.tools.data.repository.QsoLogRepository
+import com.ham.tools.data.repository.UserPreferencesRepository
+import com.ham.tools.voice.SherpaModelDownloader
+import com.ham.tools.voice.SherpaOnnxStreamingRecorder
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 
 /**
@@ -60,7 +73,10 @@ data class QsoFormState(
  */
 @HiltViewModel
 class LogbookViewModel @Inject constructor(
-    private val repository: QsoLogRepository
+    private val repository: QsoLogRepository,
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val sherpaModelDownloader: SherpaModelDownloader,
+    private val llmQsoExtractionService: LlmQsoExtractionService
 ) : ViewModel() {
     
     /**
@@ -84,6 +100,137 @@ class LogbookViewModel @Inject constructor(
      */
     private val _showBottomSheet = MutableStateFlow(false)
     val showBottomSheet: StateFlow<Boolean> = _showBottomSheet.asStateFlow()
+
+    private val _voiceUi = MutableStateFlow(VoiceQsoUiState())
+    val voiceUi: StateFlow<VoiceQsoUiState> = _voiceUi.asStateFlow()
+
+    private var recordStopFlag: AtomicBoolean? = null
+    private var voiceJob: Job? = null
+
+    val appSettings: StateFlow<AppSettings> = userPreferencesRepository.appSettings
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = AppSettings()
+        )
+    
+    /**
+     * 已配置 LLM 且麦克风权限就绪后，由界面调用以开始下载模型（若需）、录音与解析。
+     */
+    fun startVoicePipeline() {
+        voiceJob?.cancel()
+        voiceJob = viewModelScope.launch {
+            try {
+                if (userPreferencesRepository.appSettings.first().llmApiKey.isBlank()) {
+                    showAddSheet()
+                    return@launch
+                }
+                beginVoiceSession()
+            } catch (_: CancellationException) {
+                _voiceUi.value = VoiceQsoUiState()
+            }
+        }
+    }
+
+    fun requestStopRecording() {
+        recordStopFlag?.set(false)
+    }
+
+    fun dismissVoiceUi() {
+        voiceJob?.cancel()
+        voiceJob = null
+        recordStopFlag?.set(false)
+        recordStopFlag = null
+        _voiceUi.value = VoiceQsoUiState()
+    }
+
+    private suspend fun beginVoiceSession() {
+        _voiceUi.value = VoiceQsoUiState(
+            phase = VoiceQsoPhase.PREPARING_MODEL,
+            statusLine = "准备 Sherpa-ONNX 模型…"
+        )
+        val dl = sherpaModelDownloader.downloadIfNeeded { done, total ->
+            val p = if (total != null && total > 0) done.toFloat() / total.toFloat() else null
+            _voiceUi.value = _voiceUi.value.copy(modelDownloadProgress = p)
+        }
+        if (dl.isFailure) {
+            _voiceUi.value = VoiceQsoUiState(
+                phase = VoiceQsoPhase.ERROR,
+                errorMessage = dl.exceptionOrNull()?.message ?: "模型下载失败"
+            )
+            return
+        }
+        val root = sherpaModelDownloader.modelsRootDirectory()
+        _voiceUi.value = VoiceQsoUiState(
+            phase = VoiceQsoPhase.RECORDING,
+            statusLine = "正在录音…点击结束以识别并解析"
+        )
+        val flag = AtomicBoolean(true)
+        recordStopFlag = flag
+        val transcriptResult = withContext(Dispatchers.Default) {
+            runCatching {
+                SherpaOnnxStreamingRecorder(root).recordUntilStopped(flag) { partial ->
+                    _voiceUi.value = _voiceUi.value.copy(asrPreview = partial)
+                }
+            }
+        }
+        if (transcriptResult.isFailure) {
+            _voiceUi.value = VoiceQsoUiState(
+                phase = VoiceQsoPhase.ERROR,
+                errorMessage = transcriptResult.exceptionOrNull()?.message ?: "识别失败"
+            )
+            recordStopFlag = null
+            return
+        }
+        val text = transcriptResult.getOrThrow()
+        if (text.isBlank()) {
+            _voiceUi.value = VoiceQsoUiState(
+                phase = VoiceQsoPhase.ERROR,
+                errorMessage = "未识别到语音内容"
+            )
+            recordStopFlag = null
+            return
+        }
+        _voiceUi.value = VoiceQsoUiState(
+            phase = VoiceQsoPhase.LLM_PARSING,
+            asrPreview = text,
+            statusLine = "正在调用 LLM 解析通联…"
+        )
+        val settings = userPreferencesRepository.appSettings.first()
+        val profile = userPreferencesRepository.userProfile.first()
+        val userMessage = QsoLlmPromptText.buildUserMessage(
+            profileCallsign = profile.callsign,
+            profileGrid = profile.gridLocator,
+            profileQth = profile.qth,
+            transcript = text
+        )
+        val llm = llmQsoExtractionService.extractQsos(
+            endpointBase = settings.llmEndpoint,
+            apiKey = settings.llmApiKey,
+            model = settings.llmModel,
+            systemPrompt = QsoLlmPromptText.SYSTEM,
+            userMessage = userMessage
+        )
+        if (llm.isFailure) {
+            _voiceUi.value = VoiceQsoUiState(
+                phase = VoiceQsoPhase.ERROR,
+                asrPreview = text,
+                errorMessage = llm.exceptionOrNull()?.message ?: "LLM 解析失败"
+            )
+            recordStopFlag = null
+            return
+        }
+        val list = llm.getOrElse { emptyList() }
+        list.forEach { repository.insertLog(it) }
+        _voiceUi.value = VoiceQsoUiState(
+            phase = VoiceQsoPhase.TRANSCRIBING,
+            asrPreview = text,
+            statusLine = "已写入 ${list.size} 条通联"
+        )
+        recordStopFlag = null
+        delay(600)
+        _voiceUi.value = VoiceQsoUiState()
+    }
     
     /**
      * Show the add QSO bottom sheet
