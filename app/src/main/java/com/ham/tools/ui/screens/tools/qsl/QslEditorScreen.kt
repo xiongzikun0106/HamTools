@@ -109,6 +109,7 @@ import com.ham.tools.R
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ham.tools.data.model.QslPlaceholder
 import com.ham.tools.data.model.QslTemplate
+import com.ham.tools.data.model.QslTemplateKind
 import com.ham.tools.data.model.QsoLog
 import com.ham.tools.data.model.TextElement
 
@@ -251,7 +252,7 @@ fun QslEditorScreen(
             // 模板选择器
             TemplateSelector(
                 templates = templates,
-                currentTemplateId = state.templateName,
+                selectedTemplateId = state.loadedTemplateId,
                 onTemplateSelect = { viewModel.loadTemplate(it) },
                 onNewTemplate = { viewModel.createNewTemplate() },
                 onDeleteTemplate = { viewModel.deleteTemplate(it.id) },
@@ -259,8 +260,46 @@ fun QslEditorScreen(
             )
             
             Spacer(modifier = Modifier.height(8.dp))
+
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.secondaryContainer
+            ) {
+                Text(
+                    text = stringResource(R.string.qsl_workshop_intro),
+                    modifier = Modifier.padding(12.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+
+            AnimatedVisibility(
+                visible = state.templateKind == QslTemplateKind.USER_IMAGE &&
+                    state.backgroundUri.isNullOrBlank() &&
+                    !state.isGenerateMode,
+                enter = fadeIn() + slideInVertically(),
+                exit = fadeOut() + slideOutVertically()
+            ) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.errorContainer
+                ) {
+                    Text(
+                        text = stringResource(R.string.qsl_import_template_hint),
+                        modifier = Modifier.padding(12.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+            }
             
-            // 通联记录信息提示（生成模式）
+            Spacer(modifier = Modifier.height(8.dp))
             AnimatedVisibility(
                 visible = state.isGenerateMode && state.qsoLog != null,
                 enter = fadeIn() + slideInVertically(),
@@ -287,7 +326,7 @@ fun QslEditorScreen(
                             Spacer(modifier = Modifier.width(8.dp))
                             Column {
                                 Text(
-                                    text = "正在为 ${qso.callsign} 生成 QSL 卡片",
+                                    text = stringResource(R.string.qsl_generating_for, qso.callsign),
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Medium,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -328,7 +367,7 @@ fun QslEditorScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "您的呼号 ${state.userCallsign} 将自动填入",
+                            text = stringResource(R.string.qsl_callsign_hint, state.userCallsign),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onTertiaryContainer
                         )
@@ -391,11 +430,20 @@ fun QslEditorScreen(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text(stringResource(R.string.qsl_select_background))
+                    Text(stringResource(R.string.qsl_import_card_template))
                 }
             }
-            
-            Spacer(modifier = Modifier.height(20.dp))
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = stringResource(R.string.qsl_background_color_advanced),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
             
             // Template name
             OutlinedTextField(
@@ -471,7 +519,7 @@ fun QslEditorScreen(
 @Composable
 private fun TemplateSelector(
     templates: List<QslTemplate>,
-    currentTemplateId: String,
+    selectedTemplateId: Long?,
     onTemplateSelect: (QslTemplate) -> Unit,
     onNewTemplate: () -> Unit,
     onDeleteTemplate: (QslTemplate) -> Unit,
@@ -529,7 +577,7 @@ private fun TemplateSelector(
             
             // 现有模板列表
             items(templates) { template ->
-                val isSelected = template.name == currentTemplateId
+                val isSelected = template.id == selectedTemplateId
                 val scale by animateFloatAsState(
                     targetValue = if (isSelected) 1.02f else 1f,
                     animationSpec = tween(200),
@@ -673,6 +721,12 @@ private fun QslCanvasEditor(
     val context = LocalContext.current
     var backgroundBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var canvasSize by remember { mutableStateOf(Size.Zero) }
+
+    val previewAspect = remember(state.canvasWidth, state.canvasHeight) {
+        val w = state.canvasWidth.coerceAtLeast(1)
+        val h = state.canvasHeight.coerceAtLeast(1)
+        w.toFloat() / h.toFloat()
+    }
     
     // Load background image
     LaunchedEffect(state.backgroundUri) {
@@ -712,7 +766,7 @@ private fun QslCanvasEditor(
             Canvas(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(3f / 2f) // Standard QSL card ratio
+                    .aspectRatio(previewAspect)
                     // 单指点击 - 选中元素
                     .pointerInput(state.textElements) {
                         detectTapGestures { offset ->
@@ -771,14 +825,14 @@ private fun QslCanvasEditor(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .aspectRatio(3f / 2f),
+                        .aspectRatio(previewAspect),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "点击下方「添加元素」开始设计",
+                            text = stringResource(R.string.qsl_empty_hint),
                             style = MaterialTheme.typography.bodyMedium,
                             color = Color.White.copy(alpha = 0.7f)
                         )

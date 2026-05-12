@@ -102,5 +102,16 @@ data class AppSettings(
     val autoBackupIntervalDays: Int = 0,
     
     /** 应用语言设置 (system = 跟随系统, zh = 中文, en = 英文, ja = 日文) */
-    val languageCode: String = "system"
+    val languageCode: String = "system",
+
+    /** QRZ Logbook API Access Key（由用户在 QRZ 网站获取，非登录密码） */
+    val qrzLogbookApiKey: String = "",
+
+    /** 新建/更新 QSO 后是否自动 INSERT 到 QRZ Logbook */
+    val qrzAutoSyncEnabled: Boolean = false,
+
+    /**
+     * 同步时是否携带 OPTION=REPLACE（覆盖重复 QSO，可能覆盖已确认记录，见 QRZ 文档）
+     */
+    val qrzInsertReplaceDuplicates: Boolean = false
 )

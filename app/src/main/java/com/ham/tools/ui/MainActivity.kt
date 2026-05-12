@@ -133,9 +133,14 @@ fun HamToolsApp(
             exit = fadeOut()
         ) {
             OnboardingScreen(
-                onComplete = { callsign ->
+                onComplete = { finish ->
                     scope.launch {
-                        viewModel.completeOnboarding(callsign)
+                        viewModel.completeOnboarding(
+                            callsign = finish.callsign,
+                            qrzApiKey = finish.qrzApiKey,
+                            qrzAutoSyncEnabled = finish.qrzAutoSync,
+                            qrzInsertReplaceDuplicates = finish.qrzInsertReplaceDuplicates
+                        )
                     }
                 }
             )

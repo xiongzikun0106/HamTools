@@ -96,7 +96,36 @@
     <string name="qsl_export_success">已保存到相册</string>
     <string name="qsl_export_failed">保存失败</string>
     <string name="qsl_share_failed">分享失败</string>
-    
+    <string name="qsl_import_card_template">导入 QSL 底图</string>
+    <string name="qsl_workshop_intro">请在电脑或设计软件中完成卡片美术设计，导出 JPEG/PNG 后导入本应用，再拖拽各日志字段（呼号、日期、频率等）到合适位置。</string>
+    <string name="qsl_import_template_hint">当前为「用户底图」模式：请先导入 QSL 卡片图片，画布尺寸将与图片一致。</string>
+    <string name="qsl_background_color_advanced">高级：纯色空白画布（旧版方式）</string>
+    <string name="qsl_template_saved">模板已保存</string>
+    <string name="qsl_error_need_background_image">请先导入 QSL 底图后再保存。</string>
+    <string name="qsl_generating_for">正在为 %1$s 生成 QSL 卡片</string>
+
+    <!-- QRZ Logbook -->
+    <string name="onboarding_skip_qrz">跳过 QRZ</string>
+    <string name="qrz_onboarding_title">连接 QRZ Logbook（可选）</string>
+    <string name="qrz_onboarding_body">在 QRZ.com 为你的日志簿获取 API Access Key（非网站登录密码）。HamTools 仅将通联以 ADIF 形式上传到 QRZ Logbook；无法通过此 API 自动向对端发送电子 QSL 卡片。</string>
+    <string name="qrz_onboarding_callsign_hint">将使用呼号：%1$s（写入个人资料）</string>
+    <string name="qrz_api_key_label">QRZ Logbook API Key</string>
+    <string name="qrz_auto_sync_label">自动同步至 qrz.com Logbook</string>
+    <string name="qrz_replace_duplicates_label">重复 QSO 时使用 REPLACE 覆盖（可能覆盖已确认记录，详见 QRZ 文档）</string>
+    <string name="qrz_verify_connection">验证连接</string>
+    <string name="qrz_verify_success">连接成功</string>
+    <string name="qrz_error_empty_key">请粘贴 API Key</string>
+    <string name="qrz_onboarding_later">稍后设置（不保存 Key）</string>
+    <string name="qrz_onboarding_save_continue">保存并继续</string>
+    <string name="qrz_unverified_title">尚未验证连接</string>
+    <string name="qrz_unverified_message">未通过 STATUS 验证即保存 Key，若 Key 错误，自动同步将失败。仍要保存吗？</string>
+    <string name="qrz_unverified_confirm">仍要保存</string>
+    <string name="settings_qrz_section">QRZ Logbook</string>
+    <string name="settings_qrz_hint">API Key 保存在本机 DataStore，与 LLM Key 风险类似；请勿截屏分享。INSERT 等操作通常需要 QRZ 订阅，详见 QRZ 文档。</string>
+    <string name="settings_qrz_verify">验证 Key</string>
+    <string name="settings_qrz_verify_ok">QRZ Logbook：连接正常</string>
+    <string name="settings_qrz_save">保存 QRZ 设置</string>
+
     <!-- Profile Screen -->
     <string name="profile_title">我的</string>
     <string name="profile_callsign">呼号</string>

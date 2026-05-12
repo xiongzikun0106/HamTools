@@ -57,15 +57,30 @@ class MainViewModel @Inject constructor(
     }
     
     /**
-     * 完成引导并保存呼号
+     * 完成引导并保存呼号（及可选 QRZ 设置）
      */
-    suspend fun completeOnboarding(callsign: String) {
+    suspend fun completeOnboarding(
+        callsign: String,
+        qrzApiKey: String? = null,
+        qrzAutoSyncEnabled: Boolean = false,
+        qrzInsertReplaceDuplicates: Boolean = false
+    ) {
         val currentProfile = userProfile.value
         val updatedProfile = currentProfile.copy(
             callsign = callsign.uppercase().trim(),
             isOnboardingComplete = true
         )
         userPreferencesRepository.updateProfile(updatedProfile)
+
+        val settings = userPreferencesRepository.appSettings.first()
+        val key = qrzApiKey?.trim().orEmpty()
+        userPreferencesRepository.updateSettings(
+            settings.copy(
+                qrzLogbookApiKey = key,
+                qrzAutoSyncEnabled = qrzAutoSyncEnabled && key.isNotEmpty(),
+                qrzInsertReplaceDuplicates = qrzInsertReplaceDuplicates && key.isNotEmpty()
+            )
+        )
     }
 
     suspend fun saveLlmFirstSetup(endpoint: String, apiKey: String, model: String) {

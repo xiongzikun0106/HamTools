@@ -9,6 +9,7 @@ import com.ham.tools.data.model.AppSettings
 import com.ham.tools.data.remote.llm.LlmQsoExtractionService
 import com.ham.tools.data.remote.llm.QsoLlmPromptText
 import com.ham.tools.data.model.QsoLog
+import com.ham.tools.data.remote.qrz.QrzLogbookRepository
 import com.ham.tools.data.repository.QsoLogRepository
 import com.ham.tools.data.repository.UserPreferencesRepository
 import com.ham.tools.voice.SherpaModelDownloader
@@ -17,9 +18,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
@@ -76,7 +79,8 @@ class LogbookViewModel @Inject constructor(
     private val repository: QsoLogRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val sherpaModelDownloader: SherpaModelDownloader,
-    private val llmQsoExtractionService: LlmQsoExtractionService
+    private val llmQsoExtractionService: LlmQsoExtractionService,
+    private val qrzLogbookRepository: QrzLogbookRepository
 ) : ViewModel() {
     
     /**
@@ -113,7 +117,22 @@ class LogbookViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = AppSettings()
         )
-    
+
+    private val _qrzSyncEvents = MutableSharedFlow<String>(extraBufferCapacity = 4)
+    val qrzSyncEvents = _qrzSyncEvents.asSharedFlow()
+
+    private suspend fun syncToQrzIfEnabled(log: QsoLog) {
+        val settings = userPreferencesRepository.appSettings.first()
+        if (!settings.qrzAutoSyncEnabled || settings.qrzLogbookApiKey.isBlank()) return
+        val station = userPreferencesRepository.userProfile.first().callsign.trim()
+        if (station.isBlank()) return
+        qrzLogbookRepository.insertQso(settings, station, log).fold(
+            onSuccess = { },
+            onFailure = { e ->
+                _qrzSyncEvents.tryEmit(e.message ?: "QRZ sync failed")
+            }
+        )
+    }
     /**
      * 已配置 LLM 且麦克风权限就绪后，由界面调用以开始下载模型（若需）、录音与解析。
      */
@@ -221,7 +240,10 @@ class LogbookViewModel @Inject constructor(
             return
         }
         val list = llm.getOrElse { emptyList() }
-        list.forEach { repository.insertLog(it) }
+        list.forEach { raw ->
+            val id = repository.insertLog(raw)
+            syncToQrzIfEnabled(raw.copy(id = id))
+        }
         _voiceUi.value = VoiceQsoUiState(
             phase = VoiceQsoPhase.TRANSCRIBING,
             asrPreview = text,
@@ -366,7 +388,8 @@ class LogbookViewModel @Inject constructor(
                 qslStatus = state.qslStatus,
                 remarks = state.remarks.takeIf { it.isNotBlank() }
             )
-            repository.insertLog(qsoLog)
+            val newId = repository.insertLog(qsoLog)
+            syncToQrzIfEnabled(qsoLog.copy(id = newId))
             hideSheet()
         }
     }

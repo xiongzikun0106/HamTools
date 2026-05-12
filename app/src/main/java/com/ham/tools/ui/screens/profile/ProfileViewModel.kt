@@ -5,11 +5,13 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ham.tools.R
 import com.ham.tools.HamToolsApplication
 import com.ham.tools.data.model.AppSettings
 import com.ham.tools.data.model.LicenseClass
 import com.ham.tools.data.model.QsoStatistics
 import com.ham.tools.data.model.UserProfile
+import com.ham.tools.data.remote.qrz.QrzLogbookRepository
 import com.ham.tools.data.repository.QsoLogRepository
 import com.ham.tools.data.repository.UserPreferencesRepository
 import com.ham.tools.util.AppLanguage
@@ -20,6 +22,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -55,11 +58,15 @@ sealed class ExportResult {
 class ProfileViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val qsoLogRepository: QsoLogRepository,
+    private val qrzLogbookRepository: QrzLogbookRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
+
+    private val _qrzVerifyFeedback = MutableStateFlow<String?>(null)
+    val qrzVerifyFeedback: StateFlow<String?> = _qrzVerifyFeedback.asStateFlow()
     
     /**
      * 用户配置 Flow
@@ -181,6 +188,25 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch {
             userPreferencesRepository.updateSettings(settings)
         }
+    }
+
+    fun verifyQrzLogbookKey(apiKey: String) {
+        viewModelScope.launch {
+            _qrzVerifyFeedback.value = null
+            val cs = userProfile.first().callsign
+            qrzLogbookRepository.verifyKey(apiKey.trim(), cs).fold(
+                onSuccess = {
+                    _qrzVerifyFeedback.value = context.getString(R.string.settings_qrz_verify_ok)
+                },
+                onFailure = { e ->
+                    _qrzVerifyFeedback.value = e.message ?: "QRZ"
+                }
+            )
+        }
+    }
+
+    fun clearQrzVerifyFeedback() {
+        _qrzVerifyFeedback.value = null
     }
     
     /**

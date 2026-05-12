@@ -14,6 +14,7 @@ import android.os.Environment
 import android.provider.MediaStore
 import com.ham.tools.data.model.QslPlaceholder
 import com.ham.tools.data.model.QslTemplate
+import com.ham.tools.data.model.QslTemplateKind
 import com.ham.tools.data.model.QsoLog
 import com.ham.tools.data.model.TextElement
 import kotlinx.coroutines.Dispatchers
@@ -420,7 +421,8 @@ class QslCardGenerator @Inject constructor() {
             name = "默认模板",
             backgroundColor = backgroundColor,
             textElementsJson = serializeTextElements(defaultElements),
-            isDefault = true
+            isDefault = true,
+            templateKind = QslTemplateKind.LEGACY_SOLID
         )
     }
 }

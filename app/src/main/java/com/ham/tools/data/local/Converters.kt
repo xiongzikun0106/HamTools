@@ -4,6 +4,7 @@ import androidx.room.TypeConverter
 import com.ham.tools.data.model.Mode
 import com.ham.tools.data.model.PropagationMode
 import com.ham.tools.data.model.QslStatus
+import com.ham.tools.data.model.QslTemplateKind
 
 /**
  * Type converters for Room database
@@ -49,5 +50,15 @@ class Converters {
         } catch (e: IllegalArgumentException) {
             PropagationMode.UNKNOWN
         }
+    }
+
+    @TypeConverter
+    fun fromQslTemplateKind(kind: QslTemplateKind): String = kind.name
+
+    @TypeConverter
+    fun toQslTemplateKind(value: String): QslTemplateKind = try {
+        QslTemplateKind.valueOf(value)
+    } catch (_: IllegalArgumentException) {
+        QslTemplateKind.LEGACY_SOLID
     }
 }

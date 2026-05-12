@@ -4,6 +4,17 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 /**
+ * QSL 模板类型：用户上传的成品卡片图，或旧版纯底色画布。
+ */
+enum class QslTemplateKind {
+    /** 以用户导入的 JPEG/PNG 为底图（推荐） */
+    USER_IMAGE,
+
+    /** 仅纯色 / 动态色背景的旧版模板 */
+    LEGACY_SOLID
+}
+
+/**
  * Text element on QSL card template
  * 
  * @property id Unique identifier for the element
@@ -71,7 +82,10 @@ data class QslTemplate(
     
     /** JSON serialized list of TextElement */
     val textElementsJson: String = "[]",
-    
+
+    /** USER_IMAGE：导入底图后布置字段；LEGACY_SOLID：旧版纯色模板 */
+    val templateKind: QslTemplateKind = QslTemplateKind.LEGACY_SOLID,
+
     /** Whether this is the default template */
     val isDefault: Boolean = false,
     

@@ -65,6 +65,17 @@ object AppModule {
             """.trimIndent())
         }
     }
+
+    /**
+     * Migration from version 3 to 4 — QSL 模板类型（用户底图 / 旧版纯色）
+     */
+    private val MIGRATION_3_4 = object : Migration(3, 4) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "ALTER TABLE qsl_templates ADD COLUMN templateKind TEXT NOT NULL DEFAULT 'LEGACY_SOLID'"
+            )
+        }
+    }
     
     /**
      * Provides the Room database instance
@@ -79,7 +90,7 @@ object AppModule {
             AppDatabase::class.java,
             AppDatabase.DATABASE_NAME
         )
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
             .fallbackToDestructiveMigration()
             .build()
     }

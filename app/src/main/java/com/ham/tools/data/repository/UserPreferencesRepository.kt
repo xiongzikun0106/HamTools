@@ -58,6 +58,9 @@ class UserPreferencesRepository @Inject constructor(
         val LAST_BACKUP_TIME = longPreferencesKey("last_backup_time")
         val AUTO_BACKUP_INTERVAL = intPreferencesKey("auto_backup_interval")
         val LANGUAGE_CODE = stringPreferencesKey("language_code")  // "system", "zh", "en", "ja"
+        val QRZ_LOGBOOK_API_KEY = stringPreferencesKey("qrz_logbook_api_key")
+        val QRZ_AUTO_SYNC = booleanPreferencesKey("qrz_auto_sync")
+        val QRZ_INSERT_REPLACE = booleanPreferencesKey("qrz_insert_replace")
     }
     
     /**
@@ -96,7 +99,10 @@ class UserPreferencesRepository @Inject constructor(
             dynamicColor = prefs[SettingsKeys.DYNAMIC_COLOR] ?: true,
             lastBackupTime = prefs[SettingsKeys.LAST_BACKUP_TIME],
             autoBackupIntervalDays = prefs[SettingsKeys.AUTO_BACKUP_INTERVAL] ?: 0,
-            languageCode = prefs[SettingsKeys.LANGUAGE_CODE] ?: "system"
+            languageCode = prefs[SettingsKeys.LANGUAGE_CODE] ?: "system",
+            qrzLogbookApiKey = prefs[SettingsKeys.QRZ_LOGBOOK_API_KEY] ?: "",
+            qrzAutoSyncEnabled = prefs[SettingsKeys.QRZ_AUTO_SYNC] ?: false,
+            qrzInsertReplaceDuplicates = prefs[SettingsKeys.QRZ_INSERT_REPLACE] ?: false
         )
     }
     
@@ -135,6 +141,9 @@ class UserPreferencesRepository @Inject constructor(
             settings.lastBackupTime?.let { prefs[SettingsKeys.LAST_BACKUP_TIME] = it }
             prefs[SettingsKeys.AUTO_BACKUP_INTERVAL] = settings.autoBackupIntervalDays
             prefs[SettingsKeys.LANGUAGE_CODE] = settings.languageCode
+            prefs[SettingsKeys.QRZ_LOGBOOK_API_KEY] = settings.qrzLogbookApiKey
+            prefs[SettingsKeys.QRZ_AUTO_SYNC] = settings.qrzAutoSyncEnabled
+            prefs[SettingsKeys.QRZ_INSERT_REPLACE] = settings.qrzInsertReplaceDuplicates
         }
     }
     

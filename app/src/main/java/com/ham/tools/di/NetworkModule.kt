@@ -1,6 +1,7 @@
 package com.ham.tools.di
 
 import com.ham.tools.data.remote.HamQslApi
+import com.ham.tools.data.remote.qrz.QrzLogbookApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -9,6 +10,7 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import java.util.concurrent.TimeUnit
+import javax.inject.Named
 import javax.inject.Singleton
 
 /**
@@ -67,5 +69,37 @@ object NetworkModule {
     @Singleton
     fun provideHamQslApi(retrofit: Retrofit): HamQslApi {
         return retrofit.create(HamQslApi::class.java)
+    }
+
+    /** QRZ Logbook API 使用独立 baseUrl，不在请求中附带 hamqsl User-Agent */
+    @Provides
+    @Singleton
+    @Named("qrz")
+    fun provideQrzOkHttpClient(): OkHttpClient {
+        val loggingInterceptor = HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BASIC
+        }
+        return OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
+            .addInterceptor(loggingInterceptor)
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    @Named("qrz")
+    fun provideQrzRetrofit(@Named("qrz") okHttpClient: OkHttpClient): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl("https://logbook.qrz.com/")
+            .client(okHttpClient)
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideQrzLogbookApi(@Named("qrz") retrofit: Retrofit): QrzLogbookApi {
+        return retrofit.create(QrzLogbookApi::class.java)
     }
 }

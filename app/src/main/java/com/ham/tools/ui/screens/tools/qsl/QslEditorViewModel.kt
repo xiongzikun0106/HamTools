@@ -1,11 +1,15 @@
 package com.ham.tools.ui.screens.tools.qsl
 
+import android.content.Context
+import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ham.tools.R
 import com.ham.tools.data.model.QslPlaceholder
 import com.ham.tools.data.model.QslTemplate
+import com.ham.tools.data.model.QslTemplateKind
 import com.ham.tools.data.model.QsoLog
 import com.ham.tools.data.model.TextElement
 import com.ham.tools.data.repository.QslTemplateRepository
@@ -13,6 +17,7 @@ import com.ham.tools.data.repository.QsoLogRepository
 import com.ham.tools.data.repository.UserPreferencesRepository
 import com.ham.tools.util.QslCardGenerator
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -45,6 +50,11 @@ data class QslEditorState(
     val templateName: String = "新模板",
     val backgroundUri: String? = null,
     val backgroundColor: Int = 0xFF1C1B1F.toInt(),
+    val templateKind: QslTemplateKind = QslTemplateKind.USER_IMAGE,
+    val canvasWidth: Int = 1200,
+    val canvasHeight: Int = 800,
+    /** 当前编辑的已存模板 id（null 表示未写入数据库） */
+    val loadedTemplateId: Long? = null,
     val textElements: List<TextElement> = emptyList(),
     val selectedElementId: String? = null,
     val isSaving: Boolean = false,
@@ -68,6 +78,7 @@ class QslEditorViewModel @Inject constructor(
     private val qsoLogRepository: QsoLogRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val generator: QslCardGenerator,
+    @ApplicationContext private val appContext: Context,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     
@@ -146,17 +157,18 @@ class QslEditorViewModel @Inject constructor(
             if (defaultTemplate != null) {
                 loadTemplate(defaultTemplate)
             } else {
-                // Create and save default template with dynamic colors
-                val template = generator.createDefaultTemplate(
-                    primaryColor = colors.primary,
-                    onPrimaryColor = colors.onPrimary,
-                    secondaryColor = colors.secondary,
-                    tertiaryColor = colors.tertiary,
-                    backgroundColor = colors.surfaceContainer
+                currentTemplateId = null
+                _state.value = _state.value.copy(
+                    templateName = appContext.getString(R.string.qsl_new_template),
+                    backgroundUri = null,
+                    backgroundColor = colors.surfaceContainer,
+                    templateKind = QslTemplateKind.USER_IMAGE,
+                    canvasWidth = 1200,
+                    canvasHeight = 800,
+                    textElements = emptyList(),
+                    selectedElementId = null,
+                    loadedTemplateId = null
                 )
-                val id = repository.insertTemplate(template)
-                repository.setAsDefault(id)
-                loadTemplate(template.copy(id = id))
             }
             _state.value = _state.value.copy(isInitialized = true)
         }
@@ -171,19 +183,41 @@ class QslEditorViewModel @Inject constructor(
             templateName = template.name,
             backgroundUri = template.backgroundUri,
             backgroundColor = template.backgroundColor,
+            templateKind = template.templateKind,
+            canvasWidth = template.canvasWidth,
+            canvasHeight = template.canvasHeight,
+            loadedTemplateId = template.id,
             textElements = generator.parseTextElements(template.textElementsJson),
             selectedElementId = null
         )
     }
     
     /**
-     * Set background image from URI
-     * 上传新背景时清空所有文本元素，用户需要自己添加
+     * 导入 QSL 底图并匹配画布像素尺寸（过长边缩放到 4096 以内）。
      */
     fun setBackgroundImage(uri: Uri) {
+        val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        try {
+            appContext.contentResolver.openInputStream(uri)?.use { stream ->
+                BitmapFactory.decodeStream(stream, null, opts)
+            }
+        } catch (_: Exception) {
+            return
+        }
+        var w = opts.outWidth.takeIf { it > 0 } ?: 1200
+        var h = opts.outHeight.takeIf { it > 0 } ?: 800
+        val maxSide = 4096
+        if (w > maxSide || h > maxSide) {
+            val scale = maxOf(w, h).toFloat() / maxSide.toFloat()
+            w = (w / scale).toInt().coerceAtLeast(1)
+            h = (h / scale).toInt().coerceAtLeast(1)
+        }
         _state.value = _state.value.copy(
             backgroundUri = uri.toString(),
-            textElements = emptyList(),  // 清空所有文本元素
+            templateKind = QslTemplateKind.USER_IMAGE,
+            canvasWidth = w,
+            canvasHeight = h,
+            textElements = emptyList(),
             selectedElementId = null
         )
     }
@@ -194,7 +228,10 @@ class QslEditorViewModel @Inject constructor(
     fun setBackgroundColor(color: Int) {
         _state.value = _state.value.copy(
             backgroundColor = color,
-            backgroundUri = null // Clear image when using solid color
+            backgroundUri = null,
+            templateKind = QslTemplateKind.LEGACY_SOLID,
+            canvasWidth = 1200,
+            canvasHeight = 800
         )
     }
     
@@ -352,30 +389,42 @@ class QslEditorViewModel @Inject constructor(
     fun saveTemplate() {
         viewModelScope.launch {
             _state.value = _state.value.copy(isSaving = true)
-            
+
             val state = _state.value
+            if (state.templateKind == QslTemplateKind.USER_IMAGE && state.backgroundUri.isNullOrBlank()) {
+                _state.value = state.copy(
+                    isSaving = false,
+                    savedMessage = appContext.getString(R.string.qsl_error_need_background_image)
+                )
+                return@launch
+            }
+
             val template = QslTemplate(
                 id = currentTemplateId ?: 0,
                 name = state.templateName,
                 backgroundUri = state.backgroundUri,
                 backgroundColor = state.backgroundColor,
+                canvasWidth = state.canvasWidth,
+                canvasHeight = state.canvasHeight,
                 textElementsJson = generator.serializeTextElements(state.textElements),
-                isDefault = currentTemplateId?.let { 
-                    repository.getTemplateById(it)?.isDefault 
+                templateKind = state.templateKind,
+                isDefault = currentTemplateId?.let {
+                    repository.getTemplateById(it)?.isDefault
                 } ?: false,
                 updatedAt = System.currentTimeMillis()
             )
-            
+
             if (currentTemplateId != null && currentTemplateId != 0L) {
                 repository.updateTemplate(template)
             } else {
                 val id = repository.insertTemplate(template)
                 currentTemplateId = id
+                _state.value = _state.value.copy(loadedTemplateId = id)
             }
-            
+
             _state.value = _state.value.copy(
                 isSaving = false,
-                savedMessage = "模板已保存"
+                savedMessage = appContext.getString(R.string.qsl_template_saved)
             )
         }
     }
@@ -388,10 +437,14 @@ class QslEditorViewModel @Inject constructor(
         currentTemplateId = null
         val backgroundColor = themeColors?.surfaceContainer ?: 0xFF1C1B1F.toInt()
         _state.value = _state.value.copy(
-            templateName = "新模板",
+            templateName = appContext.getString(R.string.qsl_new_template),
             backgroundUri = null,
             backgroundColor = backgroundColor,
-            textElements = emptyList(),  // 空白模板
+            templateKind = QslTemplateKind.LEGACY_SOLID,
+            canvasWidth = 1200,
+            canvasHeight = 800,
+            loadedTemplateId = null,
+            textElements = emptyList(),
             selectedElementId = null,
             showAddElementDialog = false,
             showColorPicker = false
@@ -447,7 +500,10 @@ class QslEditorViewModel @Inject constructor(
             name = state.templateName,
             backgroundUri = state.backgroundUri,
             backgroundColor = state.backgroundColor,
-            textElementsJson = generator.serializeTextElements(state.textElements)
+            canvasWidth = state.canvasWidth,
+            canvasHeight = state.canvasHeight,
+            textElementsJson = generator.serializeTextElements(state.textElements),
+            templateKind = state.templateKind
         )
     }
     

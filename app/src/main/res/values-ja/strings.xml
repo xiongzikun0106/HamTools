@@ -96,7 +96,36 @@
     <string name="qsl_export_success">ギャラリーに保存しました</string>
     <string name="qsl_export_failed">保存に失敗しました</string>
     <string name="qsl_share_failed">共有に失敗しました</string>
-    
+    <string name="qsl_import_card_template">QSL 画像を読み込む</string>
+    <string name="qsl_workshop_intro">カードのデザインは PC 上のソフトで仕上げ、JPEG/PNG で書き出してから読み込み、通联フィールド（コールサイン・日付・周波数など）をドラッグして配置します。</string>
+    <string name="qsl_import_template_hint">ユーザー画像モード：先に QSL カード画像を読み込んでください。キャンバスは画像のピクセルに合わせます（長辺が大きい場合は 4096 まで縮小）。</string>
+    <string name="qsl_background_color_advanced">上級：単色の空白キャンバス（旧方式）</string>
+    <string name="qsl_template_saved">テンプレートを保存しました</string>
+    <string name="qsl_error_need_background_image">保存する前に QSL 背景画像を読み込んでください。</string>
+    <string name="qsl_generating_for">%1$s 向けの QSL カードを生成中</string>
+
+    <!-- QRZ Logbook -->
+    <string name="onboarding_skip_qrz">QRZ をスキップ</string>
+    <string name="qrz_onboarding_title">QRZ Logbook に接続（任意）</string>
+    <string name="qrz_onboarding_body">QRZ.com で Logbook 用 API Access Key を取得します（サイトのログインパスワードではありません）。HamTools は ADIF として QRZ Logbook にアップロードするだけで、この API 経由で相手に電子 QSL カードを送ることはできません。</string>
+    <string name="qrz_onboarding_callsign_hint">使用するコールサイン：%1$s（プロフィールに保存）</string>
+    <string name="qrz_api_key_label">QRZ Logbook API Key</string>
+    <string name="qrz_auto_sync_label">新しい QSO を qrz.com Logbook に自動同期</string>
+    <string name="qrz_replace_duplicates_label">重複 QSO は REPLACE で上書き（確認済みを上書きする可能性があります。QRZ ドキュメント参照）</string>
+    <string name="qrz_verify_connection">接続テスト</string>
+    <string name="qrz_verify_success">接続成功</string>
+    <string name="qrz_error_empty_key">API Key を貼り付けてください</string>
+    <string name="qrz_onboarding_later">後で設定（Key は保存しない）</string>
+    <string name="qrz_onboarding_save_continue">保存して続行</string>
+    <string name="qrz_unverified_title">未検証</string>
+    <string name="qrz_unverified_message">STATUS による検証に成功していません。Key が誤っていると自動同期は失敗します。それでも保存しますか？</string>
+    <string name="qrz_unverified_confirm">保存する</string>
+    <string name="settings_qrz_section">QRZ Logbook</string>
+    <string name="settings_qrz_hint">API Key は端末に保存されます（LLM Key と同様の取り扱い）。INSERT などは QRZ のサブスクリプションが必要な場合があります。QRZ のドキュメントを参照してください。</string>
+    <string name="settings_qrz_verify">Key を検証</string>
+    <string name="settings_qrz_verify_ok">QRZ Logbook：接続 OK</string>
+    <string name="settings_qrz_save">QRZ 設定を保存</string>
+
     <!-- Profile Screen -->
     <string name="profile_title">プロフィール</string>
     <string name="profile_callsign">コールサイン</string>

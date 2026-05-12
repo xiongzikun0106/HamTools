@@ -39,6 +39,7 @@ import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
@@ -122,6 +123,7 @@ fun ProfileScreen(
     val userProfile by viewModel.userProfile.collectAsState()
     val statistics by viewModel.statistics.collectAsState()
     val appSettings by viewModel.appSettings.collectAsState()
+    val qrzVerifyFeedback by viewModel.qrzVerifyFeedback.collectAsState()
     
     val context = LocalContext.current
     val activity = context as? android.app.Activity
@@ -148,6 +150,13 @@ fun ProfileScreen(
                 }
             }
             viewModel.clearExportResult()
+        }
+    }
+
+    LaunchedEffect(qrzVerifyFeedback) {
+        qrzVerifyFeedback?.let { msg ->
+            snackbarHostState.showSnackbar(msg)
+            viewModel.clearQrzVerifyFeedback()
         }
     }
     
@@ -245,7 +254,18 @@ fun ProfileScreen(
                         llmModel = m.trim().ifBlank { s.llmModel }
                     )
                 )
-            }
+            },
+            onSaveQrzSettings = { key, auto, replace ->
+                val s = appSettings
+                viewModel.updateSettings(
+                    s.copy(
+                        qrzLogbookApiKey = key.trim(),
+                        qrzAutoSyncEnabled = auto && key.isNotBlank(),
+                        qrzInsertReplaceDuplicates = replace && key.isNotBlank() && auto
+                    )
+                )
+            },
+            onVerifyQrzKey = { viewModel.verifyQrzLogbookKey(it) }
         )
     }
 }
@@ -1099,7 +1119,9 @@ private fun SettingsSheet(
     onExportJson: (Uri) -> Unit,
     onExportCsv: (Uri) -> Unit,
     onLanguageChange: (AppLanguage) -> Unit,
-    onSaveLlmSettings: (endpoint: String, apiKey: String, model: String) -> Unit
+    onSaveLlmSettings: (endpoint: String, apiKey: String, model: String) -> Unit,
+    onSaveQrzSettings: (qrzKey: String, autoSync: Boolean, replaceDuplicates: Boolean) -> Unit,
+    onVerifyQrzKey: (String) -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var languageExpanded by remember { mutableStateOf(false) }
@@ -1213,6 +1235,93 @@ private fun SettingsSheet(
                 Text(stringResource(R.string.settings_llm_save))
             }
 
+            Spacer(modifier = Modifier.height(24.dp))
+
+            HorizontalDivider()
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = stringResource(R.string.settings_qrz_section),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.settings_qrz_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+
+            var qrzKey by remember { mutableStateOf(appSettings.qrzLogbookApiKey) }
+            var qrzAuto by remember { mutableStateOf(appSettings.qrzAutoSyncEnabled) }
+            var qrzReplace by remember { mutableStateOf(appSettings.qrzInsertReplaceDuplicates) }
+            LaunchedEffect(
+                appSettings.qrzLogbookApiKey,
+                appSettings.qrzAutoSyncEnabled,
+                appSettings.qrzInsertReplaceDuplicates
+            ) {
+                qrzKey = appSettings.qrzLogbookApiKey
+                qrzAuto = appSettings.qrzAutoSyncEnabled
+                qrzReplace = appSettings.qrzInsertReplaceDuplicates
+            }
+
+            OutlinedTextField(
+                value = qrzKey,
+                onValueChange = { qrzKey = it },
+                label = { Text(stringResource(R.string.qrz_api_key_label)) },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2,
+                shape = RoundedCornerShape(16.dp)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(
+                    checked = qrzAuto,
+                    onCheckedChange = {
+                        qrzAuto = it
+                        if (!it) qrzReplace = false
+                    },
+                    enabled = qrzKey.isNotBlank()
+                )
+                Text(
+                    text = stringResource(R.string.qrz_auto_sync_label),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(
+                    checked = qrzReplace,
+                    onCheckedChange = { qrzReplace = it },
+                    enabled = qrzAuto && qrzKey.isNotBlank()
+                )
+                Text(
+                    text = stringResource(R.string.qrz_replace_duplicates_label),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedButton(
+                onClick = { onVerifyQrzKey(qrzKey) },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = qrzKey.isNotBlank()
+            ) {
+                Text(stringResource(R.string.settings_qrz_verify))
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = { onSaveQrzSettings(qrzKey, qrzAuto, qrzReplace) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Text(stringResource(R.string.settings_qrz_save))
+            }
+            
             Spacer(modifier = Modifier.height(24.dp))
 
             HorizontalDivider()

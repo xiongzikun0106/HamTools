@@ -96,7 +96,36 @@
     <string name="qsl_export_success">Saved to Gallery</string>
     <string name="qsl_export_failed">Save Failed</string>
     <string name="qsl_share_failed">Share Failed</string>
-    
+    <string name="qsl_import_card_template">Import QSL card image</string>
+    <string name="qsl_workshop_intro">Finish your card artwork in a graphics app, export JPEG/PNG, then import it here and drag log fields (callsign, date, frequency, etc.) into place.</string>
+    <string name="qsl_import_template_hint">User image mode: import your QSL card image first. Canvas size will match the image pixels (long edge scaled down to 4096 if larger).</string>
+    <string name="qsl_background_color_advanced">Advanced: solid color blank canvas (legacy)</string>
+    <string name="qsl_template_saved">Template saved</string>
+    <string name="qsl_error_need_background_image">Import a QSL background image before saving.</string>
+    <string name="qsl_generating_for">Generating QSL card for %1$s</string>
+
+    <!-- QRZ Logbook -->
+    <string name="onboarding_skip_qrz">Skip QRZ</string>
+    <string name="qrz_onboarding_title">Connect QRZ Logbook (optional)</string>
+    <string name="qrz_onboarding_body">Get a Logbook API Access Key on QRZ.com (not your website password). HamTools uploads contacts as ADIF to QRZ Logbook only; it cannot send eQSL images to the other station via this API.</string>
+    <string name="qrz_onboarding_callsign_hint">Using callsign: %1$s (saved to profile)</string>
+    <string name="qrz_api_key_label">QRZ Logbook API Key</string>
+    <string name="qrz_auto_sync_label">Auto-sync new QSOs to qrz.com Logbook</string>
+    <string name="qrz_replace_duplicates_label">Use REPLACE for duplicates (may overwrite confirmed QSOs; see QRZ docs)</string>
+    <string name="qrz_verify_connection">Test connection</string>
+    <string name="qrz_verify_success">Connection OK</string>
+    <string name="qrz_error_empty_key">Paste your API Key</string>
+    <string name="qrz_onboarding_later">Set up later (do not save Key)</string>
+    <string name="qrz_onboarding_save_continue">Save and continue</string>
+    <string name="qrz_unverified_title">Not verified</string>
+    <string name="qrz_unverified_message">You have not run a successful STATUS check. If the Key is wrong, auto-sync will fail. Save anyway?</string>
+    <string name="qrz_unverified_confirm">Save anyway</string>
+    <string name="settings_qrz_section">QRZ Logbook</string>
+    <string name="settings_qrz_hint">API Key is stored locally (similar sensitivity to LLM keys). INSERT typically requires a QRZ subscription. See QRZ documentation.</string>
+    <string name="settings_qrz_verify">Verify Key</string>
+    <string name="settings_qrz_verify_ok">QRZ Logbook: connection OK</string>
+    <string name="settings_qrz_save">Save QRZ settings</string>
+
     <!-- Profile Screen -->
     <string name="profile_title">Profile</string>
     <string name="profile_callsign">Callsign</string>

@@ -59,6 +59,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetState
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.TextButton
@@ -66,9 +68,11 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -129,6 +133,13 @@ fun LogbookScreen(
     val appSettings by viewModel.appSettings.collectAsStateWithLifecycle()
     val voiceUi by viewModel.voiceUi.collectAsStateWithLifecycle()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val logbookSnackbar = remember { SnackbarHostState() }
+
+    LaunchedEffect(Unit) {
+        viewModel.qrzSyncEvents.collect { message ->
+            logbookSnackbar.showSnackbar(message)
+        }
+    }
 
     val micPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -173,7 +184,8 @@ fun LogbookScreen(
                 icon = { Icon(imageVector = Icons.Filled.Add, contentDescription = null) },
                 text = { Text(text = stringResource(R.string.logbook_record_qso)) }
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(logbookSnackbar) }
     ) { innerPadding ->
         AnimatedVisibility(
             visible = logs.isEmpty(),
